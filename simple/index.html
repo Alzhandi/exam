@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ИГА Prep — Simple</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-zinc-50 text-zinc-900">
+    <div class="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+        <div class="font-semibold tracking-tight">ИГА Prep (simple)</div>
+        <nav class="flex flex-wrap gap-1 text-sm">
+          <a class="nav rounded-xl px-3 py-2 hover:bg-zinc-100" href="#bank">Банк</a>
+          <a class="nav rounded-xl px-3 py-2 hover:bg-zinc-100" href="#practice">Практика</a>
+          <a class="nav rounded-xl px-3 py-2 hover:bg-zinc-100" href="#mock">Экзамен</a>
+          <a class="nav rounded-xl px-3 py-2 hover:bg-zinc-100" href="#stats">Прогресс</a>
+        </nav>
+      </div>
+    </div>
+
+    <main class="mx-auto max-w-5xl px-4 py-8">
+      <div id="banner" class="mb-4 hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"></div>
+
+      <section id="view-bank" class="view hidden">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <div class="text-lg font-semibold">Банк вопросов</div>
+          <div class="mt-4 grid gap-3 md:grid-cols-3">
+            <input
+              id="bankQuery"
+              class="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-4 focus:ring-zinc-900/10"
+              placeholder="Поиск по вопросу/вариантам…"
+            />
+            <select
+              id="bankCategory"
+              class="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-4 focus:ring-zinc-900/10"
+            ></select>
+            <div class="flex flex-wrap items-center gap-4 text-sm text-zinc-700">
+              <label class="flex cursor-pointer items-center gap-2"
+                ><input id="bankOnlyFav" type="checkbox" class="h-4 w-4" />Только избранное</label
+              >
+              <label class="flex cursor-pointer items-center gap-2"
+                ><input id="bankOnlyWrong" type="checkbox" class="h-4 w-4" />Только ошибки</label
+              >
+            </div>
+          </div>
+          <div class="mt-3 text-sm text-zinc-600">
+            Найдено: <span id="bankCount" class="font-medium text-zinc-900">0</span>
+          </div>
+        </div>
+        <div id="bankList" class="mt-6 grid gap-4"></div>
+        <div id="bankMore" class="mt-4 text-center text-sm text-zinc-600"></div>
+      </section>
+
+      <section id="view-practice" class="view hidden">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <div class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div class="text-lg font-semibold">Практика</div>
+              <div class="mt-1 text-sm text-zinc-600">
+                Пул вопросов: <span id="practicePoolCount" class="font-medium text-zinc-900">0</span>
+              </div>
+            </div>
+            <button id="practiceNext" class="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800">
+              Следующий
+            </button>
+          </div>
+
+          <div class="mt-4 grid gap-3 md:grid-cols-3">
+            <select
+              id="practiceCategory"
+              class="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-4 focus:ring-zinc-900/10"
+            ></select>
+            <div class="flex flex-wrap items-center gap-4 text-sm text-zinc-700 md:col-span-2">
+              <label class="flex cursor-pointer items-center gap-2"
+                ><input id="practiceOnlyWrongQueue" type="checkbox" class="h-4 w-4" />Только «повторить ошибки»</label
+              >
+              <label class="flex cursor-pointer items-center gap-2"
+                ><input id="practiceOnlyUnanswered" type="checkbox" class="h-4 w-4" />Только без ответа</label
+              >
+            </div>
+          </div>
+        </div>
+
+        <div id="practiceCard" class="mt-6"></div>
+      </section>
+
+      <section id="view-mock" class="view hidden">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <div class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div class="text-lg font-semibold">Пробный экзамен</div>
+              <div id="mockSummary" class="mt-1 text-sm text-zinc-600">Выберите размер теста и начните.</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="mockEnd" class="hidden rounded-xl bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200">
+                Завершить
+              </button>
+              <button id="mockStart" class="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800">
+                Начать
+              </button>
+              <button
+                id="mockNext"
+                class="hidden rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+              >
+                Далее
+              </button>
+            </div>
+          </div>
+
+          <div id="mockConfig" class="mt-4 max-w-xs">
+            <select
+              id="mockCount"
+              class="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-4 focus:ring-zinc-900/10"
+            >
+              <option value="10">10 вопросов</option>
+              <option value="20">20 вопросов</option>
+              <option value="30">30 вопросов</option>
+              <option value="50" selected>50 вопросов</option>
+              <option value="100">100 вопросов</option>
+              <option value="all">Все вопросы</option>
+            </select>
+            <div class="mt-2 text-xs text-zinc-500">Источник: «Основной банк» (для «Все вопросы» — все вопросы).</div>
+          </div>
+
+          <div id="mockProgress" class="mt-4 hidden text-sm text-zinc-600"></div>
+        </div>
+
+        <div id="mockResults" class="mt-6 hidden">
+          <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <div class="text-lg font-semibold mb-4">Результаты теста</div>
+            <div class="grid gap-4 md:grid-cols-3">
+              <div class="rounded-xl border border-zinc-200 bg-white p-4">
+                <div class="text-sm text-zinc-500">Отвечено</div>
+                <div class="mt-1 text-2xl font-semibold">
+                  <span id="mockResultAnswered">0</span> / <span id="mockResultTotal" class="text-lg text-zinc-500">0</span>
+                </div>
+              </div>
+              <div class="rounded-xl border border-zinc-200 bg-white p-4">
+                <div class="text-sm text-zinc-500">Правильных ответов</div>
+                <div class="mt-1 text-2xl font-semibold text-emerald-700">
+                  <span id="mockResultCorrect">0</span>
+                </div>
+              </div>
+              <div class="rounded-xl border border-zinc-200 bg-white p-4">
+                <div class="text-sm text-zinc-500">Процент</div>
+                <div class="mt-1 text-2xl font-semibold text-zinc-900">
+                  <span id="mockResultPercent">0%</span>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-zinc-200">
+              <button id="mockBackToTest" class="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800">
+                Вернуться к тесту
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="mockCard" class="mt-6"></div>
+      </section>
+
+      <section id="view-stats" class="view hidden">
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <div class="text-lg font-semibold">Прогресс</div>
+            <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div class="rounded-xl border border-zinc-200 bg-white p-4">
+                <div class="text-zinc-500">Отвечено</div>
+                <div class="mt-1 text-xl font-semibold">
+                  <span id="stAnswered">0</span> <span class="text-sm font-medium text-zinc-500">/ <span id="stTotal">0</span></span>
+                </div>
+              </div>
+              <div class="rounded-xl border border-zinc-200 bg-white p-4">
+                <div class="text-zinc-500">Точность</div>
+                <div id="stAccuracy" class="mt-1 text-xl font-semibold">0%</div>
+              </div>
+              <div class="rounded-xl border border-zinc-200 bg-white p-4">
+                <div class="text-zinc-500">Верно</div>
+                <div id="stCorrect" class="mt-1 text-xl font-semibold text-emerald-700">0</div>
+              </div>
+              <div class="rounded-xl border border-zinc-200 bg-white p-4">
+                <div class="text-zinc-500">Неверно</div>
+                <div id="stWrong" class="mt-1 text-xl font-semibold text-rose-700">0</div>
+              </div>
+            </div>
+            <div class="mt-4 text-sm text-zinc-600">
+              «Повторить ошибки»: <span id="stWrongQueue" class="font-medium text-zinc-900">0</span>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <div class="text-lg font-semibold">Метки</div>
+            <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div class="rounded-xl border border-zinc-200 bg-white p-4">
+                <div class="text-zinc-500">Избранное</div>
+                <div id="stFav" class="mt-1 text-xl font-semibold">0</div>
+              </div>
+              <div class="rounded-xl border border-zinc-200 bg-white p-4">
+                <div class="text-zinc-500">Сложные</div>
+                <div id="stDiff" class="mt-1 text-xl font-semibold">0</div>
+              </div>
+            </div>
+
+            <div class="mt-5 text-sm text-zinc-600">
+              Основной банк: <span id="stMainTotal" class="font-medium text-zinc-900">0</span> · Консультация:
+              <span id="stConsultTotal" class="font-medium text-zinc-900">0</span>
+            </div>
+
+            <div class="mt-6">
+              <button id="resetAll" class="rounded-xl bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200">
+                Сбросить прогресс
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-home" class="view hidden">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
+          <div class="text-sm text-zinc-600">Вопросы загружаются из `web/src/data/questions.json`</div>
+          <h1 class="mt-2 text-2xl font-semibold tracking-tight">ИГА Prep — простой HTML</h1>
+          <p class="mt-3 text-sm leading-relaxed text-zinc-700">
+            Банк, практика, экзамен, прогресс. Всё хранится локально в браузере.
+          </p>
+          <div class="mt-5 flex flex-wrap gap-2 text-xs text-zinc-700">
+            <span class="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1"
+              >Основной банк: <span id="homeMain" class="ml-1 font-semibold">0</span></span
+            >
+            <span class="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1"
+              >Консультация: <span id="homeConsult" class="ml-1 font-semibold">0</span></span
+            >
+          </div>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a class="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800" href="#practice"
+              >Начать практику</a
+            >
+            <a class="rounded-xl bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200" href="#mock"
+              >Пробный экзамен</a
+            >
+            <a class="rounded-xl px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100" href="#bank"
+              >Открыть банк</a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const DATASET_URL = "/web/src/data/questions.json";
+      const PROGRESS_KEY = "iga-prep/simple-progress:v1";
+
+      const $ = (id) => document.getElementById(id);
+
+      function showBanner(msg) {
+        const el = $("banner");
+        el.textContent = msg;
+        el.classList.remove("hidden");
+      }
+
+      function hideBanner() {
+        $("banner").classList.add("hidden");
+      }
+
+      function loadProgress() {
+        try {
+          const raw = localStorage.getItem(PROGRESS_KEY);
+          if (!raw) return { answersById: {}, favorites: {}, difficult: {}, wrongQueue: [] };
+          const p = JSON.parse(raw);
+          return {
+            answersById: p.answersById || {},
+            favorites: p.favorites || {},
+            difficult: p.difficult || {},
+            wrongQueue: p.wrongQueue || []
+          };
+        } catch {
+          return { answersById: {}, favorites: {}, difficult: {}, wrongQueue: [] };
+        }
+      }
+
+      function saveProgress(p) {
+        localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
+      }
+
+      function pct(n, d) {
+        if (!d) return "0%";
+        return Math.round((n / d) * 100) + "%";
+      }
+
+      function normalizeText(s) {
+        return (s || "").toString().toLowerCase();
+      }
+
+      function shuffle(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      function getCategory(q) {
+        return q.category || (q.section === "main" ? "Основной банк" : "Консультация");
+      }
+
+      function makeCard({ q, mode, progress, onChange }) {
+        const answered = progress.answersById[q.id] || null;
+
+        const wrap = document.createElement("div");
+        wrap.className = "rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm";
+
+        const top = document.createElement("div");
+        top.className = "flex flex-wrap items-start justify-between gap-3";
+
+        const left = document.createElement("div");
+        left.className = "min-w-0";
+
+        const meta = document.createElement("div");
+        meta.className = "flex flex-wrap items-center gap-2 text-xs text-zinc-600";
+
+        const chip = (t) => {
+          const s = document.createElement("span");
+          s.className = "inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-700";
+          s.textContent = t;
+          return s;
+        };
+        meta.appendChild(chip(q.section === "main" ? "Основной банк" : "Консультация"));
+        if (q.number != null) meta.appendChild(chip("№ " + q.number));
+        if (q.parserFlags && q.parserFlags.length) meta.appendChild(chip("пометка: " + q.parserFlags.join(", ")));
+        left.appendChild(meta);
+
+        const prompt = document.createElement("div");
+        prompt.className = "mt-3 whitespace-pre-wrap text-sm leading-relaxed";
+        prompt.textContent = q.prompt;
+        left.appendChild(prompt);
+
+        top.appendChild(left);
+
+        const right = document.createElement("div");
+        right.className = "flex items-center gap-2";
+
+        const mkBtn = (label, active, onclick) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className =
+            "rounded-xl px-3 py-2 text-xs transition " + (active ? "bg-zinc-100" : "hover:bg-zinc-100");
+          b.textContent = label;
+          b.addEventListener("click", onclick);
+          return b;
+        };
+
+        const favActive = !!progress.favorites[q.id];
+        const diffActive = !!progress.difficult[q.id];
+        right.appendChild(
+          mkBtn(favActive ? "★" : "☆", favActive, () => {
+            if (progress.favorites[q.id]) delete progress.favorites[q.id];
+            else progress.favorites[q.id] = true;
+            saveProgress(progress);
+            onChange();
+          })
+        );
+        right.appendChild(
+          mkBtn(diffActive ? "Сложно" : "Сложн.", diffActive, () => {
+            if (progress.difficult[q.id]) delete progress.difficult[q.id];
+            else progress.difficult[q.id] = true;
+            saveProgress(progress);
+            onChange();
+          })
+        );
+
+        top.appendChild(right);
+        wrap.appendChild(top);
+
+        let revealed = mode === "bank";
+        const actions = document.createElement("div");
+        actions.className = "mt-4 flex flex-wrap items-center justify-between gap-3";
+
+        const leftActions = document.createElement("div");
+        leftActions.className = "flex items-center gap-2";
+
+        if (mode !== "bank") {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "rounded-xl bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200";
+          b.textContent = "Показать ответ";
+          b.addEventListener("click", () => {
+            revealed = !revealed;
+            b.textContent = revealed ? "Скрыть ответ" : "Показать ответ";
+            renderOptions();
+          });
+          leftActions.appendChild(b);
+        }
+
+        if (answered) {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "rounded-xl px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100";
+          b.textContent = "Сбросить ответ";
+          b.addEventListener("click", () => {
+            delete progress.answersById[q.id];
+            progress.wrongQueue = progress.wrongQueue.filter((x) => x !== q.id);
+            saveProgress(progress);
+            onChange();
+          });
+          leftActions.appendChild(b);
+        }
+
+        actions.appendChild(leftActions);
+
+        const status = document.createElement("div");
+        status.className = "text-sm";
+        actions.appendChild(status);
+
+        const optionsWrap = document.createElement("div");
+        optionsWrap.className = "mt-4 grid gap-2";
+
+        function renderOptions() {
+          optionsWrap.innerHTML = "";
+          const ans = progress.answersById[q.id] || null;
+          const showCorrectness = revealed || !!ans;
+
+          for (const opt of q.options || []) {
+            const selected = ans && ans.selectedOptionId === opt.id;
+            const isCorrect = (q.correctOptionIds || []).includes(opt.id);
+
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className =
+              "w-full rounded-xl border px-4 py-3 text-left text-sm transition " +
+              (!showCorrectness
+                ? selected
+                  ? "border-zinc-900 bg-zinc-50"
+                  : "border-zinc-200 hover:bg-zinc-50"
+                : isCorrect
+                  ? "border-emerald-300 bg-emerald-50"
+                  : selected
+                    ? "border-rose-300 bg-rose-50"
+                    : "border-zinc-200 bg-white");
+            btn.textContent = opt.text;
+            btn.addEventListener("click", () => {
+              const isOk = (q.correctOptionIds || []).includes(opt.id);
+              progress.answersById[q.id] = { selectedOptionId: opt.id, isCorrect: isOk, answeredAt: Date.now() };
+              if (!isOk) {
+                if (!progress.wrongQueue.includes(q.id)) progress.wrongQueue.push(q.id);
+              } else {
+                progress.wrongQueue = progress.wrongQueue.filter((x) => x !== q.id);
+              }
+              saveProgress(progress);
+              onChange();
+            });
+            optionsWrap.appendChild(btn);
+          }
+
+          const cur = progress.answersById[q.id] || null;
+          if (cur) {
+            status.className = "text-sm font-medium " + (cur.isCorrect ? "text-emerald-700" : "text-rose-700");
+            status.textContent = cur.isCorrect ? "Верно" : "Неверно";
+          } else {
+            status.className = "text-sm text-zinc-500";
+            status.textContent = "Выберите вариант";
+          }
+        }
+
+        renderOptions();
+        wrap.appendChild(optionsWrap);
+        wrap.appendChild(actions);
+
+        if (q.explanation) {
+          const exp = document.createElement("div");
+          exp.className = "mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700";
+          exp.textContent = q.explanation;
+          wrap.appendChild(exp);
+        }
+
+        return wrap;
+      }
+
+      async function loadDataset() {
+        const res = await fetch(DATASET_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error("Не удалось загрузить questions.json по пути: " + DATASET_URL);
+        const data = await res.json();
+        return data.questions || [];
+      }
+
+      function setView(hash) {
+        const h = (hash || "").replace("#", "") || "home";
+        const views = ["home", "bank", "practice", "mock", "stats"];
+        const target = views.includes(h) ? h : "home";
+        for (const v of views) $("view-" + v).classList.toggle("hidden", v !== target);
+        for (const a of document.querySelectorAll("a.nav")) {
+          a.classList.toggle("bg-zinc-900", a.getAttribute("href") === "#" + target);
+          a.classList.toggle("text-white", a.getAttribute("href") === "#" + target);
+        }
+      }
+
+      (async function init() {
+        hideBanner();
+        setView(location.hash);
+        window.addEventListener("hashchange", () => setView(location.hash));
+
+        let questions = [];
+        try {
+          questions = await loadDataset();
+        } catch (e) {
+          showBanner(
+            "Не удалось загрузить датасет. Запустите локальный сервер из папки `exam-prep`: `python3 -m http.server 8000` и откройте `http://localhost:8000/simple/index.html`."
+          );
+          throw e;
+        }
+
+        const byId = Object.fromEntries(questions.map((q) => [q.id, q]));
+        const progress = loadProgress();
+
+        // Home counts
+        const mainCount = questions.filter((q) => q.section === "main").length;
+        $("homeMain").textContent = String(mainCount);
+        $("homeConsult").textContent = String(questions.length - mainCount);
+
+        // Categories
+        const cats = Array.from(new Set(questions.map(getCategory))).sort((a, b) => a.localeCompare(b, "ru"));
+        function fillCategorySelect(selectEl, includeAll) {
+          selectEl.innerHTML = "";
+          if (includeAll) {
+            const o = document.createElement("option");
+            o.value = "Все";
+            o.textContent = "Все";
+            selectEl.appendChild(o);
+          }
+          for (const c of cats) {
+            const o = document.createElement("option");
+            o.value = c;
+            o.textContent = c;
+            selectEl.appendChild(o);
+          }
+        }
+        fillCategorySelect($("bankCategory"), true);
+        fillCategorySelect($("practiceCategory"), true);
+
+        // BANK
+        function renderBank() {
+          const q = normalizeText($("bankQuery").value).trim();
+          const cat = $("bankCategory").value || "Все";
+          const onlyFav = $("bankOnlyFav").checked;
+          const onlyWrong = $("bankOnlyWrong").checked;
+
+          let items = questions;
+          if (cat !== "Все") items = items.filter((x) => getCategory(x) === cat);
+          if (onlyFav) items = items.filter((x) => !!progress.favorites[x.id]);
+          if (onlyWrong) items = items.filter((x) => progress.answersById[x.id] && !progress.answersById[x.id].isCorrect);
+          if (q) {
+            items = items.filter((x) => {
+              const hay = normalizeText(x.prompt + " " + (x.options || []).map((o) => o.text).join(" "));
+              return hay.includes(q);
+            });
+          }
+
+          $("bankCount").textContent = String(items.length);
+          const list = $("bankList");
+          list.innerHTML = "";
+
+          for (const it of items) list.appendChild(makeCard({ q: it, mode: "bank", progress, onChange: rerenderAll }));
+
+          $("bankMore").textContent = "";
+        }
+
+        // PRACTICE
+        let practiceCurrentId = null;
+        function practicePool() {
+          const cat = $("practiceCategory").value || "Все";
+          const onlyWrongQueue = $("practiceOnlyWrongQueue").checked;
+          const onlyUnanswered = $("practiceOnlyUnanswered").checked;
+
+          let items = questions;
+          if (cat !== "Все") items = items.filter((x) => getCategory(x) === cat);
+          if (onlyWrongQueue) items = items.filter((x) => progress.wrongQueue.includes(x.id));
+          if (onlyUnanswered) items = items.filter((x) => !progress.answersById[x.id]);
+          return items;
+        }
+        function pickNextPractice() {
+          const pool = practicePool();
+          $("practicePoolCount").textContent = String(pool.length);
+          if (!pool.length) return null;
+          const ids = pool.map((x) => x.id).filter((id) => id !== practiceCurrentId);
+          const pickFrom = ids.length ? ids : pool.map((x) => x.id);
+          return pickFrom[Math.floor(Math.random() * pickFrom.length)] || null;
+        }
+        function renderPractice() {
+          const pool = practicePool();
+          $("practicePoolCount").textContent = String(pool.length);
+          if (practiceCurrentId && !pool.some((x) => x.id === practiceCurrentId)) practiceCurrentId = null;
+          if (!practiceCurrentId && pool[0]) practiceCurrentId = pool[0].id;
+
+          const card = $("practiceCard");
+          card.innerHTML = "";
+          const q = practiceCurrentId ? byId[practiceCurrentId] : null;
+          if (!q) {
+            const empty = document.createElement("div");
+            empty.className = "rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-700 shadow-sm";
+            empty.textContent = "Нет подходящих вопросов для выбранных фильтров.";
+            card.appendChild(empty);
+            return;
+          }
+          card.appendChild(makeCard({ q, mode: "practice", progress, onChange: rerenderAll }));
+        }
+
+        // MOCK
+        const mainIds = questions.filter((q) => q.section === "main").map((q) => q.id);
+        const allIds = questions.map((q) => q.id);
+        let mock = null; // { ids:[], idx:0 }
+
+        function mockScore() {
+          if (!mock) return null;
+          let answered = 0;
+          let correct = 0;
+          for (const id of mock.ids) {
+            const rec = progress.answersById[id];
+            if (!rec) continue;
+            answered++;
+            if (rec.isCorrect) correct++;
+          }
+          return { answered, correct, total: mock.ids.length };
+        }
+
+        function renderMock() {
+          const summary = $("mockSummary");
+          const cfg = $("mockConfig");
+          const mp = $("mockProgress");
+          const card = $("mockCard");
+          const results = $("mockResults");
+
+          card.innerHTML = "";
+          results.classList.add("hidden");
+          
+          if (!mock) {
+            $("mockStart").classList.remove("hidden");
+            $("mockNext").classList.add("hidden");
+            $("mockEnd").classList.add("hidden");
+            cfg.classList.remove("hidden");
+            mp.classList.add("hidden");
+            summary.textContent = "Выберите размер теста и начните.";
+            const empty = document.createElement("div");
+            empty.className = "rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-700 shadow-sm";
+            empty.textContent = "Нажмите «Начать», чтобы сгенерировать тест.";
+            card.appendChild(empty);
+            return;
+          }
+
+          const sc = mockScore();
+          const finished = sc.answered === sc.total;
+
+          if (finished) {
+            // Показываем результаты
+            $("mockStart").classList.add("hidden");
+            $("mockNext").classList.add("hidden");
+            $("mockEnd").classList.remove("hidden");
+            cfg.classList.add("hidden");
+            mp.classList.add("hidden");
+            card.classList.add("hidden");
+            results.classList.remove("hidden");
+            
+            $("mockResultAnswered").textContent = String(sc.answered);
+            $("mockResultTotal").textContent = String(sc.total);
+            $("mockResultCorrect").textContent = String(sc.correct);
+            const percent = sc.total > 0 ? Math.round((sc.correct / sc.total) * 100) : 0;
+            $("mockResultPercent").textContent = String(percent) + "%";
+            
+            summary.textContent = `Тест завершён: ${sc.correct} из ${sc.total} (${percent}%)`;
+          } else {
+            // Показываем текущий вопрос
+            $("mockStart").classList.add("hidden");
+            $("mockNext").classList.remove("hidden");
+            $("mockEnd").classList.remove("hidden");
+            cfg.classList.add("hidden");
+            mp.classList.remove("hidden");
+            card.classList.remove("hidden");
+            results.classList.add("hidden");
+            
+            summary.textContent = `Ответов: ${sc.answered} / ${sc.total} · Верно: ${sc.correct}`;
+            mp.textContent = `Вопрос ${mock.idx + 1} из ${mock.ids.length}`;
+
+            const curId = mock.ids[mock.idx];
+            const q = byId[curId];
+            if (q) card.appendChild(makeCard({ q, mode: "mock", progress, onChange: rerenderAll }));
+          }
+        }
+
+        // STATS
+        function renderStats() {
+          const total = questions.length;
+          const answeredIds = Object.keys(progress.answersById);
+          const answered = answeredIds.length;
+          let correct = 0;
+          let wrong = 0;
+          for (const rec of Object.values(progress.answersById)) {
+            if (rec.isCorrect) correct++;
+            else wrong++;
+          }
+          $("stTotal").textContent = String(total);
+          $("stAnswered").textContent = String(answered);
+          $("stCorrect").textContent = String(correct);
+          $("stWrong").textContent = String(wrong);
+          $("stAccuracy").textContent = pct(correct, answered || 1);
+          $("stFav").textContent = String(Object.keys(progress.favorites).length);
+          $("stDiff").textContent = String(Object.keys(progress.difficult).length);
+          $("stWrongQueue").textContent = String(progress.wrongQueue.length);
+          const mainTotal = mainIds.length;
+          $("stMainTotal").textContent = String(mainTotal);
+          $("stConsultTotal").textContent = String(total - mainTotal);
+        }
+
+        function rerenderAll() {
+          renderBank();
+          renderPractice();
+          renderMock();
+          renderStats();
+        }
+
+        // Wire events
+        let bankTimer = null;
+        ["bankQuery", "bankCategory", "bankOnlyFav", "bankOnlyWrong"].forEach((id) => {
+          $(id).addEventListener("input", () => {
+            // tiny debounce for search typing
+            if (id === "bankQuery") {
+              if (bankTimer) clearTimeout(bankTimer);
+              bankTimer = setTimeout(renderBank, 120);
+            } else renderBank();
+          });
+          $(id).addEventListener("change", renderBank);
+        });
+
+        ["practiceCategory", "practiceOnlyWrongQueue", "practiceOnlyUnanswered"].forEach((id) => {
+          $(id).addEventListener("change", () => {
+            practiceCurrentId = null;
+            renderPractice();
+          });
+        });
+        $("practiceNext").addEventListener("click", () => {
+          practiceCurrentId = pickNextPractice();
+          renderPractice();
+        });
+
+        $("mockStart").addEventListener("click", () => {
+          const val = $("mockCount").value;
+          const ids = val === "all" ? allIds : shuffle(mainIds).slice(0, Math.max(1, Math.min(mainIds.length, Number(val) || 50)));
+          mock = { ids: shuffle(ids), idx: 0 };
+          renderMock();
+        });
+        $("mockEnd").addEventListener("click", () => {
+          mock = null;
+          renderMock();
+        });
+        $("mockNext").addEventListener("click", () => {
+          if (!mock) return;
+          mock.idx = Math.min(mock.idx + 1, mock.ids.length - 1);
+          renderMock();
+        });
+        $("mockBackToTest").addEventListener("click", () => {
+          if (!mock) return;
+          // Возвращаемся к первому вопросу для просмотра
+          mock.idx = 0;
+          renderMock();
+        });
+
+        $("resetAll").addEventListener("click", () => {
+          if (!confirm("Сбросить весь прогресс?")) return;
+          localStorage.removeItem(PROGRESS_KEY);
+          const fresh = loadProgress();
+          progress.answersById = fresh.answersById;
+          progress.favorites = fresh.favorites;
+          progress.difficult = fresh.difficult;
+          progress.wrongQueue = fresh.wrongQueue;
+          rerenderAll();
+        });
+
+        // Initial render
+        rerenderAll();
+      })();
+    </script>
+  </body>
+</html>
+
