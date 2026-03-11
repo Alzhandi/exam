@@ -1,0 +1,11 @@
+{
+  "name": "exam-prep-root",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "vercel-build": "npm --prefix web install && npm --prefix web run build"
+  },
+  "dependencies": {
+    "next": "^15.5.2"
+  }
+}
