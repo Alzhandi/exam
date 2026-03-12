@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
-import { questions } from "@/lib/questions";
+import { getSourceValue, questions, sourceOptions } from "@/lib/questions";
 
 export default function HomePage() {
   const mainCount = questions.filter((q) => q.section === "main").length;
   const consultCount = questions.length - mainCount;
+  const sourceStats = sourceOptions
+    .filter((s) => s !== "Все источники")
+    .map((s) => ({ label: s, count: questions.filter((q) => getSourceValue(q) === s).length }));
 
   return (
     <div>
@@ -20,6 +23,11 @@ export default function HomePage() {
           <div className="mt-5 flex flex-wrap gap-2">
             <span className="chip">Основной банк: {mainCount}</span>
             <span className="chip">Консультация/примеры: {consultCount}</span>
+            {sourceStats.map((item) => (
+              <span key={item.label} className="chip">
+                {item.label}: {item.count}
+              </span>
+            ))}
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link className="btn btn-primary" href="/practice">

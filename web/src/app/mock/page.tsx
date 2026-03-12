@@ -4,7 +4,7 @@ import * as React from "react";
 import { Nav } from "@/components/Nav";
 import { QuestionCard } from "@/components/QuestionCard";
 import { Select } from "@/components/Controls";
-import { questions } from "@/lib/questions";
+import { getSourceValue, questions, sourceOptions } from "@/lib/questions";
 import { useProgress } from "@/app/providers";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -18,11 +18,20 @@ function shuffle<T>(arr: T[]): T[] {
 
 export default function MockPage() {
   const { state } = useProgress();
-  const mainIds = React.useMemo(() => questions.filter((q) => q.section === "main").map((q) => q.id), []);
-  const allIds = React.useMemo(() => questions.map((q) => q.id), []);
+  const [source, setSource] = React.useState("Все источники");
+  const sourceFiltered = React.useMemo(
+    () => (source === "Все источники" ? questions : questions.filter((q) => getSourceValue(q) === source)),
+    [source]
+  );
+  const mainIds = React.useMemo(() => sourceFiltered.filter((q) => q.section === "main").map((q) => q.id), [sourceFiltered]);
+  const allIds = React.useMemo(() => sourceFiltered.map((q) => q.id), [sourceFiltered]);
 
   const [count, setCount] = React.useState("50");
   const [session, setSession] = React.useState<{ questionIds: string[]; idx: number } | null>(null);
+
+  React.useEffect(() => {
+    setSession(null);
+  }, [source]);
 
   const start = React.useCallback(() => {
     const questionIds = count === "all" ? shuffle(allIds) : shuffle(mainIds).slice(0, Math.max(1, Math.min(mainIds.length, Number(count) || 50)));
@@ -102,12 +111,19 @@ export default function MockPage() {
 
           {!session ? (
             <div className="mt-4 max-w-xs">
+              <div className="mb-3">
+                <Select
+                  value={source}
+                  onChange={setSource}
+                  options={sourceOptions.map((s) => ({ value: s, label: s }))}
+                />
+              </div>
               <Select
                 value={count}
                 onChange={setCount}
                 options={["10", "20", "30", "50", "100", "all"].map((v) => ({ value: v, label: v === "all" ? "Все вопросы" : `${v} вопросов` }))}
               />
-              <div className="mt-2 text-xs text-zinc-500">Источник: «Основной банк» (для «Все вопросы» — все вопросы).</div>
+              <div className="mt-2 text-xs text-zinc-500">Для фиксированных размеров берутся вопросы из «Основного банка» выбранного источника.</div>
             </div>
           ) : !finished ? (
             <div className="mt-4 text-sm text-zinc-600">

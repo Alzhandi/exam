@@ -4,13 +4,14 @@ import * as React from "react";
 import { Nav } from "@/components/Nav";
 import { QuestionCard } from "@/components/QuestionCard";
 import { Select, TextInput, Toggle, useDebouncedValue } from "@/components/Controls";
-import { getCategoryValue, questions } from "@/lib/questions";
+import { getCategoryValue, getSourceValue, questions, sourceOptions } from "@/lib/questions";
 import { useProgress } from "@/app/providers";
 
 export default function QuestionBankPage() {
   const { state } = useProgress();
   const [query, setQuery] = React.useState("");
   const qDebounced = useDebouncedValue(query, 150);
+  const [source, setSource] = React.useState("Все источники");
 
   const categories = React.useMemo(() => {
     const set = new Set<string>();
@@ -25,6 +26,7 @@ export default function QuestionBankPage() {
   const filtered = React.useMemo(() => {
     const q = qDebounced.trim().toLowerCase();
     return questions.filter((item) => {
+      if (source !== "Все источники" && getSourceValue(item) !== source) return false;
       if (category !== "Все" && getCategoryValue(item) !== category) return false;
       if (onlyFavorites && !state.favorites[item.id]) return false;
       if (onlyWrong && !(state.answersByQuestionId[item.id] && !state.answersByQuestionId[item.id].isCorrect)) return false;
@@ -32,7 +34,7 @@ export default function QuestionBankPage() {
       const hay = (item.prompt + " " + item.options.map((o) => o.text).join(" ")).toLowerCase();
       return hay.includes(q);
     });
-  }, [category, onlyFavorites, onlyWrong, qDebounced, state.answersByQuestionId, state.favorites]);
+  }, [category, onlyFavorites, onlyWrong, qDebounced, source, state.answersByQuestionId, state.favorites]);
 
   return (
     <div>
@@ -40,8 +42,13 @@ export default function QuestionBankPage() {
       <main className="mx-auto max-w-5xl px-4 py-8">
         <div className="card p-5">
           <div className="text-lg font-semibold">Банк вопросов</div>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
             <TextInput value={query} onChange={setQuery} placeholder="Поиск по тексту вопроса/вариантам..." />
+            <Select
+              value={source}
+              onChange={setSource}
+              options={sourceOptions.map((s) => ({ value: s, label: s }))}
+            />
             <Select
               value={category}
               onChange={setCategory}

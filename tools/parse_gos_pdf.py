@@ -36,8 +36,11 @@ class Question:
 
 
 _RE_Q_START = re.compile(r"^\s*(\d{1,4})\.\s+(.*\S)\s*$")
+_RE_Q_HASH = re.compile(r"^\s*#\s*(\d{1,4})\s*$")
 _RE_PAGE_NUM = re.compile(r"^\s*\d{1,4}\s*$")
-_RE_OPTION = re.compile(r"^\s*([*·])\s*\.?\s*(.*\S)\s*$")
+_RE_PROMPT_MARKED = re.compile(r"^\s*\*!\s*(.*\S)\s*$")
+_RE_OPTION_STAR = re.compile(r"^\s*\*(\+)?\s*\.?\s*(.*\S)\s*$")
+_RE_OPTION_LEGACY = re.compile(r"^\s*([*·])\s*\.?\s*(.*\S)\s*$")
 
 
 def _normalize_line(line: str) -> str:
@@ -80,6 +83,8 @@ def parse_questions(pdf_path: Path) -> list[Question]:
     current_section: Section = "main"
     current_category: str | None = None
     seen_first_numbered = False
+    format_hint: Literal["legacy", "hash"] | None = None
+    next_inferred_number = 1
 
     cur_number: int | None = None
     cur_prompt_lines: list[str] = []
@@ -90,7 +95,7 @@ def parse_questions(pdf_path: Path) -> list[Question]:
     cur_expl_lines: list[str] = []
 
     def flush() -> None:
-        nonlocal cur_number, cur_prompt_lines, cur_options, cur_correct, cur_pages, cur_flags, cur_expl_lines, current_category
+        nonlocal cur_number, cur_prompt_lines, cur_options, cur_correct, cur_pages, cur_flags, cur_expl_lines, current_category, next_inferred_number
         if cur_number is None and not cur_prompt_lines:
             return
 
@@ -121,6 +126,9 @@ def parse_questions(pdf_path: Path) -> list[Question]:
             )
         )
 
+        if cur_number is not None:
+            next_inferred_number = max(next_inferred_number, cur_number + 1)
+
         cur_number = None
         cur_prompt_lines = []
         cur_options = []
@@ -133,6 +141,22 @@ def parse_questions(pdf_path: Path) -> list[Question]:
     for page, raw in _iter_pdf_lines(pdf_path):
         line = raw.strip()
         if _is_noise(line):
+            continue
+
+        m_q_hash = _RE_Q_HASH.match(line)
+        if m_q_hash:
+            format_hint = "hash"
+            flush()
+            cur_number = int(m_q_hash.group(1))
+            continue
+
+        m_prompt_marked = _RE_PROMPT_MARKED.match(line)
+        if m_prompt_marked:
+            format_hint = "hash"
+            if cur_number is None and not cur_prompt_lines and not cur_options:
+                cur_number = next_inferred_number
+            cur_prompt_lines.append(m_prompt_marked.group(1))
+            cur_pages.add(page)
             continue
 
         # The first page contains an index-like line: "Консультация (примеры...) – 138 стр. ↓"
@@ -156,6 +180,7 @@ def parse_questions(pdf_path: Path) -> list[Question]:
 
         m_q = _RE_Q_START.match(line)
         if m_q:
+            format_hint = "legacy"
             seen_first_numbered = True
             flush()
             cur_number = int(m_q.group(1))
@@ -164,13 +189,25 @@ def parse_questions(pdf_path: Path) -> list[Question]:
             continue
 
         # Skip any leading front-matter before the first numbered question.
-        if not seen_first_numbered and current_section == "main":
+        if not seen_first_numbered and current_section == "main" and format_hint != "hash":
             continue
 
-        m_opt = _RE_OPTION.match(line)
-        if m_opt and cur_number is not None:
-            marker = m_opt.group(1)
-            opt_text = _normalize_line(m_opt.group(2))
+        m_opt_star = _RE_OPTION_STAR.match(line)
+        if m_opt_star and cur_number is not None:
+            has_plus = bool(m_opt_star.group(1))
+            opt_text = _normalize_line(m_opt_star.group(2))
+            opt_id = f"{_mk_id('o', cur_number, len(cur_options) + 1)}-{len(cur_options)+1}"
+            is_correct = has_plus if format_hint == "hash" else True
+            cur_options.append(Option(id=opt_id, text=opt_text, isCorrect=is_correct))
+            if is_correct:
+                cur_correct.append(opt_id)
+            cur_pages.add(page)
+            continue
+
+        m_opt_legacy = _RE_OPTION_LEGACY.match(line)
+        if m_opt_legacy and cur_number is not None:
+            marker = m_opt_legacy.group(1)
+            opt_text = _normalize_line(m_opt_legacy.group(2))
             opt_id = f"{_mk_id('o', cur_number, len(cur_options) + 1)}-{len(cur_options)+1}"
             is_correct = marker == "*"
             cur_options.append(Option(id=opt_id, text=opt_text, isCorrect=is_correct))

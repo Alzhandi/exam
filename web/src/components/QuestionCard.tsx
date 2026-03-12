@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { Question } from "@/lib/types";
 import { useProgress } from "@/app/providers";
+import { getSourceValue } from "@/lib/questions";
 
 function IconButton({ label, onClick, active }: { label: string; onClick: () => void; active: boolean }) {
   return (
@@ -42,6 +43,7 @@ export function QuestionCard({
             <span className="chip">
               {question.section === "main" ? "Основной банк" : "Консультация"}
             </span>
+            <span className="chip">Источник: {getSourceValue(question)}</span>
             {question.number != null ? <span className="chip">№ {question.number}</span> : null}
             {question.parserFlags.length ? (
               <span className="chip">пометка: {question.parserFlags.join(", ")}</span>
