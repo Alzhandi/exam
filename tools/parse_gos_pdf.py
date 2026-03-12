@@ -37,6 +37,7 @@ class Question:
 
 _RE_Q_START = re.compile(r"^\s*(\d{1,4})\.\s+(.*\S)\s*$")
 _RE_Q_HASH = re.compile(r"^\s*#\s*(\d{1,4})\s*$")
+_RE_Q_HASH_ANY = re.compile(r"#\s*(\d{1,4})\b")
 _RE_PAGE_NUM = re.compile(r"^\s*\d{1,4}\s*$")
 _RE_PROMPT_MARKED = re.compile(r"^\s*\*!\s*(.*\S)\s*$")
 _RE_OPTION_STAR = re.compile(r"^\s*\*(\+)?\s*\.?\s*(.*\S)\s*$")
@@ -138,9 +139,45 @@ def parse_questions(pdf_path: Path) -> list[Question]:
         cur_expl_lines = []
 
     consultation_started = False
+
+    def push_free_text(text: str, page: int) -> None:
+        t = text.strip()
+        if not t:
+            return
+        if cur_options:
+            cur_options[-1] = Option(
+                id=cur_options[-1].id,
+                text=_normalize_line(cur_options[-1].text + " " + t),
+                isCorrect=cur_options[-1].isCorrect,
+            )
+            cur_pages.add(page)
+            return
+        if current_section == "consultation" and t.lower().startswith(("ответ", "тактика", "дистрактор", "дополнения")):
+            cur_expl_lines.append(t)
+            cur_pages.add(page)
+            return
+        cur_prompt_lines.append(t)
+        cur_pages.add(page)
+
     for page, raw in _iter_pdf_lines(pdf_path):
         line = raw.strip()
         if _is_noise(line):
+            continue
+
+        inline_hashes = list(_RE_Q_HASH_ANY.finditer(line))
+        if inline_hashes and not _RE_Q_HASH.match(line):
+            cursor = 0
+            for m in inline_hashes:
+                before = line[cursor:m.start()].strip(" -–—")
+                if before:
+                    push_free_text(before, page)
+                flush()
+                format_hint = "hash"
+                cur_number = int(m.group(1))
+                cursor = m.end()
+            tail = line[cursor:].strip(" -–—")
+            if tail:
+                push_free_text(tail, page)
             continue
 
         m_q_hash = _RE_Q_HASH.match(line)
@@ -236,26 +273,39 @@ def parse_questions(pdf_path: Path) -> list[Question]:
                 cur_pages.add(page)
                 continue
 
-        # If we already started options, remaining lines that don't match option markers are likely wrapped option text.
-        if cur_options:
-            cur_options[-1] = Option(
-                id=cur_options[-1].id,
-                text=_normalize_line(cur_options[-1].text + " " + line),
-                isCorrect=cur_options[-1].isCorrect,
-            )
-            cur_pages.add(page)
-            continue
-
-        # Otherwise it's still part of the prompt (or explanation-ish line inside consultation)
-        if current_section == "consultation" and line.lower().startswith(("ответ", "тактика", "дистрактор", "дополнения")):
-            cur_expl_lines.append(line)
-            cur_pages.add(page)
-            continue
-
-        cur_prompt_lines.append(line)
-        cur_pages.add(page)
+        push_free_text(line, page)
 
     flush()
+
+    # For sources titled as 500-question sets, keep explicit numbering complete
+    # even when a subset of question bodies cannot be confidently extracted.
+    stem_lower = pdf_path.stem.lower()
+    if "500" in stem_lower:
+        by_number = {q.number: q for q in questions if isinstance(q.number, int)}
+        if by_number:
+            existing_min = min(by_number)
+            existing_max = max(by_number)
+            if existing_min <= 2 and existing_max >= 500:
+                for n in range(1, 501):
+                    if n in by_number:
+                        continue
+                    qid = _mk_id("q", n, len(questions) + 1)
+                    questions.append(
+                        Question(
+                            id=qid,
+                            number=n,
+                            section="main",
+                            prompt=f"Вопрос №{n} не удалось автоматически извлечь из PDF. Нужна ручная проверка исходного файла.",
+                            options=[],
+                            correctOptionIds=[],
+                            explanation=None,
+                            category="Требует ручной проверки",
+                            source={"file": str(pdf_path), "pages": []},
+                            parserFlags=["missing_number_placeholder"],
+                        )
+                    )
+
+                questions.sort(key=lambda q: (q.number is None, q.number if q.number is not None else 10**9, q.id))
     return questions
 
 
